@@ -1,0 +1,71 @@
+<!doctype html>
+<!--
+  PERSEFLOUZ — page relais OAuth (Social Studio)
+
+  À héberger telle quelle sur un site HTTPS de PERSEUS (ex. https://perseus.fr/connexion/), puis à déclarer comme
+  « URI de redirection OAuth » dans l'application Meta (Instagram) — et TikTok si l'application TikTok est de type Web.
+
+  Ce qu'elle fait : Instagram (ou TikTok) renvoie ici le navigateur après l'autorisation, avec un code à usage unique.
+  La page le transmet aussitôt à PERSEFLOUZ sur CE Mac (http://localhost:<port>/api/social/callback). Le port vient du
+  paramètre « state » créé par PERSEFLOUZ ; l'adresse de destination est toujours localhost (jamais un autre site).
+
+  Sécurité : aucun secret ici, aucun appel réseau, aucune mesure d'audience. Le code reçu est inutilisable sans le secret
+  de l'application, qui reste dans le Trousseau du Mac. L'autorisation doit être faite depuis le Mac où PERSEFLOUZ est lancé.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<title>PERSEUS — Connexion du compte</title>
+<style>
+  :root { color-scheme: light dark; --bg: #F2F0EB; --card: #FBFAF7; --ink: #111318; --muted: #5E5B55; --line: #DEDBD4; --blue: #123BFF; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #111318; --card: #1B1B1E; --ink: #F2F0EB; --muted: #92949A; --line: #2E2E33; } }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--bg); color: var(--ink);
+         font-family: Manrope, system-ui, sans-serif; font-size: 15px; line-height: 1.55; padding: 16px; box-sizing: border-box; }
+  main { max-width: 460px; width: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 28px; }
+  .eyebrow { font-size: 10.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  h1 { font-family: League Spartan, Manrope, sans-serif; font-weight: 800; font-size: 22px; line-height: 1.15; letter-spacing: -.01em; margin: 10px 0 12px; }
+  p { margin: 0 0 10px; color: var(--muted); }
+  .bar { width: 28px; height: 2px; background: var(--blue); margin-top: 18px; }
+  a { color: var(--blue); }
+</style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">PERSEUS · Social Studio</div>
+  <h1 id="t">Connexion en cours…</h1>
+  <p id="m">Retour vers PERSEFLOUZ sur cet ordinateur.</p>
+  <div class="bar"></div>
+</main>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search);
+  var state = q.get('state') || '';
+  var t = document.getElementById('t'), m = document.getElementById('m');
+  var match = /^(\d{2,5})-[A-Za-z0-9_-]{16,}$/.exec(state);
+  var port = match ? parseInt(match[1], 10) : 0;
+  if (!match || port < 1024 || port > 65535) {
+    t.textContent = 'Lien de connexion invalide';
+    m.textContent = 'Relancez la connexion depuis PERSEFLOUZ (Social Studio › Comptes).';
+    return;
+  }
+  var target = new URL('http://localhost:' + port + '/api/social/callback');
+  ['code', 'state', 'error', 'error_reason', 'error_description', 'scopes'].forEach(function (k) {
+    var v = q.get(k);
+    if (v !== null) target.searchParams.set(k, v.replace(/#_$/, ''));
+  });
+  // Le code n'est pas conservé dans l'historique de cette page.
+  history.replaceState(null, '', location.pathname);
+  location.replace(target.toString());
+  setTimeout(function () {
+    t.textContent = 'PERSEFLOUZ ne répond pas';
+    m.innerHTML = 'Ouvrez cette page sur le Mac où PERSEFLOUZ est lancé, avec l’application démarrée, puis relancez la connexion. '
+      + '<a href="' + target.toString().replace(/"/g, '&quot;') + '">Réessayer</a>';
+  }, 4000);
+})();
+</script>
+</body>
+</html>
